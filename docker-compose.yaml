@@ -1,0 +1,56 @@
+version: '3'
+services:
+  zookeeper:
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper:latest
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - kafka_network
+
+  kafka:
+    container_name: kafka
+    image: wurstmeister/kafka:latest
+    environment:
+      - KAFKA_LISTENER_SECURITY_PROTOCOL=PLAINTEXT
+      - KAFKA_LISTENER_SASL_MECHANISM=PLAIN
+      - KAFKA_LISTENER_SASL_JAAS_CONFIG='org.apache.kafka.common.security.plain.PlainLoginModule required username="kafka_user" password="kafka_password" user_kafka_user="kafka_password";'
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka:9093,OUTSIDE://localhost:9092
+      - KAFKA_LISTENERS=INTERNAL://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,OUTSIDE:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    depends_on:
+      - zookeeper
+
+
+      
+    networks:
+      - kafka_network
+
+
+  init-kafka: 
+    image: wurstmeister/kafka 
+    depends_on: 
+      - zookeeper
+      - kafka
+    entrypoint: ['bin/bash', '-c']
+    command: |
+      " 
+        echo aguardando kafka iniciar ...
+        sleep 10
+        cd opt/kafka_2.13-2.8.1/bin
+        kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic produto-nome
+      "
+    networks:
+      - kafka_network
+
+networks:
+  kafka_network:
+    
